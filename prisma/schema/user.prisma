@@ -1,0 +1,19 @@
+model User {
+  id       String  @id @default(uuid())
+  name     String
+  email    String  @unique
+  password String?
+  role     Role    @default(CUSTOMER)
+
+  // Relations
+  createdSchedules LoadSheddingSchedule[]
+  outageReports    OutageReport[]
+  assignments      TechnicianAssignment[]
+  notifications    Notification[]
+  payments         Payment[]
+  auditLogs        AuditLog[]
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  refreshTokens RefreshToken[]
+}

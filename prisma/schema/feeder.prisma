@@ -1,0 +1,12 @@
+model Feeder {
+  id           String @id @default(uuid())
+  name         String
+  code         String @unique
+  substationId String
+
+  substation Substation @relation(fields: [substationId], references: [id])
+  areas      Area[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

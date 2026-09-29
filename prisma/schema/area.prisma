@@ -1,0 +1,14 @@
+model Area {
+  id       String @id @default(uuid())
+  name     String
+  code     String @unique
+  feederId String
+
+  feeder Feeder @relation(fields: [feederId], references: [id])
+
+  schedules LoadSheddingSchedule[]
+  outages   OutageReport[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

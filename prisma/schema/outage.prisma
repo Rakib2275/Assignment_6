@@ -1,0 +1,15 @@
+model OutageReport {
+  id           String @id @default(uuid())
+  title        String
+  areaId       String
+  reportedById String
+
+  area Area @relation(fields: [areaId], references: [id])
+
+  reportedBy User @relation(fields: [reportedById], references: [id])
+
+  assignments TechnicianAssignment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

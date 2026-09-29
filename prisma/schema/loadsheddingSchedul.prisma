@@ -1,0 +1,16 @@
+model LoadSheddingSchedule {
+  id          String @id @default(uuid())
+  title       String
+  areaId      String
+  createdById String
+
+  area Area @relation(fields: [areaId], references: [id])
+
+  createdBy User @relation(fields: [createdById], references: [id])
+
+  startTime DateTime
+  endTime   DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

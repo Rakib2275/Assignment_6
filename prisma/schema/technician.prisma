@@ -1,0 +1,12 @@
+model TechnicianAssignment {
+  id           String @id @default(uuid())
+  outageId     String
+  technicianId String
+
+  outage OutageReport @relation(fields: [outageId], references: [id])
+
+  technician User @relation(fields: [technicianId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

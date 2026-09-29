@@ -1,0 +1,10 @@
+model DistributionZone {
+  id   String @id @default(uuid())
+  name String @unique
+  code String @unique
+
+  substations Substation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

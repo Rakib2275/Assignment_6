@@ -1,0 +1,11 @@
+model Payment {
+  id     String @id @default(uuid())
+  userId String
+
+  amount Decimal @db.Decimal(12, 2)
+
+  user User @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
