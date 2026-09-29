@@ -2,6 +2,18 @@ enum Role {
   CUSTOMER
   OPERATOR
   ADMIN
+  SUPER_ADMIN
+}
+
+enum AuthProvider {
+  GOOGLE
+  CREDENTIALS
+}
+
+enum UserStatus {
+  ACTIVE
+  BLOCKED
+  DELETED
 }
 
 enum AccountStatus {

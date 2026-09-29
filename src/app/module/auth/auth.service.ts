@@ -138,21 +138,16 @@ const verifyPatientEmail = async (payload : IVerifyEmailPayload) => {
 
 	const createdUser = await prisma.user.create({
 		data: {
-			name : patientPayload.name,
-			email : patientPayload.email,
+			name: patientPayload.name,
+			email: patientPayload.email,
 			password: patientPayload.password,
-			role: Role.PATIENT,
+			role: Role.CUSTOMER,
 			status: UserStatus.ACTIVE,
 			emailVerified: true,
-			patient: {
-				create: {
-					name: patientPayload.name,
-					email: patientPayload.email, 
-					contactNumber: patientPayload?.patient?.contactNumber || "" },
-			},
 		},
-		omit: { password: true },
-		include: { patient: true },
+		omit: {
+			password: true,
+		},
 	});
 
 	await redisClient.del(patientRegistrationKey)
@@ -174,7 +169,7 @@ const verifyPatientEmail = async (payload : IVerifyEmailPayload) => {
 		html
 	})
 
-	const { patient, ...user } = createdUser;
+	const user = createdUser;
 	const jwtPayload = {
 		userId: user.id,
 		name: user.name,
@@ -196,7 +191,6 @@ const verifyPatientEmail = async (payload : IVerifyEmailPayload) => {
 
 	return {
 		user,
-		patient,
 		accessToken,
 		refreshToken,
 	};
@@ -259,9 +253,6 @@ const getMe = async (user: IRequestUser) => {
 	const isUserExists = await prisma.user.findUnique({
 		where: {
 			id: user.userId,
-		},
-		include: {
-			patient: true,
 		},
 		omit: {
 			password: true,
@@ -348,7 +339,7 @@ const googleLogin = async (payload:IGoogleLoginPayload ) =>{
 	const ifPatientExistWithGoogleAuth = await prisma.user.findUnique({
 		where:{
 			email : googleIdTokenPayload.email,
-			role : Role.PATIENT,
+			role : Role.CUSTOMER,
 			googleId : googleIdTokenPayload.sub
 		}
 	})
@@ -359,7 +350,7 @@ const googleLogin = async (payload:IGoogleLoginPayload ) =>{
 		const ifPatientExistWithCredentials = await prisma.user.findUnique({
 			where : {
 				email: googleIdTokenPayload.email,
-				role: Role.PATIENT,
+				role: Role.CUSTOMER,
 				authProvider : AuthProvider.CREDENTIALS
 			}
 		})
@@ -385,22 +376,16 @@ const googleLogin = async (payload:IGoogleLoginPayload ) =>{
 			})
 		}else{
 			user = await prisma.user.create({
-			data:{
-				name : googleIdTokenPayload.name as string,
-				email : googleIdTokenPayload.email,
-				role : Role.PATIENT,
-				googleId: googleIdTokenPayload.sub,
-				authProvider : AuthProvider.GOOGLE,
-				emailVerified : true,
-				patient:{
-					create:{
-						name: googleIdTokenPayload.name as string,
-						email: googleIdTokenPayload.email
-					}
-				}
-			}
-		})
-		const tempatePath = path.join(process.cwd(), "src/app/templates/patient-welcome-email.ejs")
+				data: {
+					name: googleIdTokenPayload.name as string,
+					email: googleIdTokenPayload.email,
+					role: Role.CUSTOMER,
+					googleId: googleIdTokenPayload.sub,
+					authProvider: AuthProvider.GOOGLE,
+					emailVerified: true,
+				},
+		});
+	const tempatePath = path.join(process.cwd(), "src/app/templates/patient-welcome-email.ejs")
 
 	const templateData = {
 		name : user.name

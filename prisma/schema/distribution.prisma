@@ -2,6 +2,8 @@ model DistributionZone {
   id   String @id @default(uuid())
   name String @unique
   code String @unique
+  description String?
+  isActive    Boolean  @default(true)
 
   substations Substation[]
 
