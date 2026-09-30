@@ -53,7 +53,7 @@ const verifyPatientEmail = catchAsync(async (req: Request, res: Response) => {
 	const payload = req.body; 
 	const result = await AuthService.verifyPatientEmail(payload);
 
-	const { accessToken, refreshToken, user, patient } = result;
+	const { accessToken, refreshToken, user } = result;
 
 	res.cookie("accessToken", accessToken, {
 		httpOnly: true,
@@ -76,7 +76,6 @@ const verifyPatientEmail = catchAsync(async (req: Request, res: Response) => {
 			accessToken,
 			refreshToken,
 			user,
-			patient
 		},
 	});
 });

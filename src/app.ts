@@ -12,6 +12,8 @@ import crypto from "crypto"
 import { UserRoutes } from "./app/module/user/user.route";
 import { getBkashIdToken } from "./app/lib/bkash";
 import { ZoneRoutes } from "./app/module/zone/zone.route";
+import { SubstationRoutes } from "./app/module/substation/substation.route";
+import { FeederRoutes } from "./app/module/feeder/feeder.route";
 
 const app: Application = express();
 
@@ -32,6 +34,8 @@ app.use(cookieParser());
 app.use("/api/v1/auth", AuthRoutes);
 app.use("/api/v1/user",UserRoutes);
 app.use("/api/v1/zone",ZoneRoutes)
+app.use("/api/v1/substation",SubstationRoutes)
+app.use("/api/v1/feeder",FeederRoutes)
 
 app.post("/zod",async (req: Request, res: Response,next: NextFunction) => {
 	try {

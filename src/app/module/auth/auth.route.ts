@@ -22,7 +22,7 @@ router.post("/login",
 	AuthController.loginUser);
 router.get(
 	"/me",
-	auth(Role.ADMIN, Role.DOCTOR, Role.PATIENT, Role.SUPER_ADMIN),
+	auth(Role.CUSTOMER, Role.OPERATOR, Role.ADMIN, Role.SUPER_ADMIN),
 	AuthController.getMe,
 );
 router.post("/refresh-token", AuthController.refreshToken);
