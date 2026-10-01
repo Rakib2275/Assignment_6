@@ -1,15 +1,34 @@
 model OutageReport {
-  id           String @id @default(uuid())
-  title        String
-  areaId       String
-  reportedById String
+  id            String         @id @default(uuid())
+  title         String
+  description   String?
 
-  area Area @relation(fields: [areaId], references: [id])
+  type          OutageType     @default(UNEXPECTED)
+  status        OutageStatus   @default(REPORTED)
+  priority      Priority @default(MEDIUM)
 
-  reportedBy User @relation(fields: [reportedById], references: [id])
+  areaId        String
+  reportedById  String
 
-  assignments TechnicianAssignment[]
+  reportedAt   DateTime  @default(now())
+  verifiedAt   DateTime?
+  assignedAt   DateTime?
+  startedAt    DateTime?
+  restoredAt   DateTime?
+  closedAt     DateTime?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  area          Area @relation(fields: [areaId], references: [id])
+  reportedBy    User @relation(fields: [reportedById], references: [id])
+
+  assignments   TechnicianAssignment[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([areaId])
+  @@index([reportedById])
+  @@index([status])
+  @@index([priority])
+  @@index([type])
+  @@index([reportedAt])
 }

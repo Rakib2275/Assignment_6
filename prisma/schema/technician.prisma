@@ -1,12 +1,19 @@
 model TechnicianAssignment {
-  id           String @id @default(uuid())
+  id           String   @id @default(uuid())
   outageId     String
   technicianId String
 
-  outage OutageReport @relation(fields: [outageId], references: [id])
+  assignedAt   DateTime @default(now())
+  unassignedAt DateTime?
 
-  technician User @relation(fields: [technicianId], references: [id])
+  outage       OutageReport @relation(fields: [outageId], references: [id])
+  technician   User         @relation(fields: [technicianId], references: [id])
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([outageId])
+  @@index([technicianId])
+  @@index([assignedAt])
+  @@index([unassignedAt])
 }

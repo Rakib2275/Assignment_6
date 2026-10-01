@@ -21,9 +21,7 @@ const createOutage = async (
   // Check area
   const area = await prisma.area.findFirst({
     where: {
-      id: payload.areaId,
-      deletedAt: null,
-      isActive: true,
+      id: payload.areaId
     },
   });
 
@@ -351,8 +349,7 @@ const verifyOutage = async (
 ) => {
   const outage: any = await prisma.outageReport.findFirst({
     where: {
-      id: outageId,
-      deletedAt: null,
+      id: outageId
     } as any,
   });
 
@@ -493,8 +490,7 @@ const assignOutage = async (
 ) => {
   const outage: any = await prisma.outageReport.findFirst({
     where: {
-      id: outageId,
-      deletedAt: null,
+      id: outageId
     } as any,
   });
 
@@ -513,8 +509,7 @@ const assignOutage = async (
   // Check operator
   const technician = await prisma.user.findFirst({
     where: {
-      id: technicianId,
-      deletedAt: null,
+      id: technicianId
     },
   });
 

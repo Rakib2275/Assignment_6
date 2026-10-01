@@ -17,6 +17,7 @@ import { FeederRoutes } from "./app/module/feeder/feeder.route";
 import { AreaRoutes } from "./app/module/area/area.route";
 import { ScheduleRoutes } from "./app/module/schedule/schedule.route";
 import { OutageRoutes } from "./app/module/outage/outage.route";
+import { PaymentRoutes } from "./app/module/payment/payment.route";
 
 const app: Application = express();
 
@@ -41,7 +42,8 @@ app.use("/api/v1/substation",SubstationRoutes)
 app.use("/api/v1/feeder",FeederRoutes)
 app.use("/api/v1/area",AreaRoutes)
 app.use("/api/v1/schedule",ScheduleRoutes)
-app.use("api/v1/outage",OutageRoutes)
+app.use("/api/v1/outage",OutageRoutes)
+app.use("/api/v1/payment",PaymentRoutes)
 
 app.post("/zod",async (req: Request, res: Response,next: NextFunction) => {
 	try {
