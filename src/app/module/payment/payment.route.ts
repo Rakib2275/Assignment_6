@@ -34,10 +34,15 @@ router.post(
   PaymentController.webhook
 );
 
+/**
+ * Customer's payments or all payments for Admin
+ */
 router.get(
-  "/webhook",
+  "/",
 
-  PaymentController.webhook
+  auth("CUSTOMER", "ADMIN", "SUPER_ADMIN"),
+
+  PaymentController.getPayments
 );
 
 /**

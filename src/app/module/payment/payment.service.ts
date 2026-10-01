@@ -3,9 +3,7 @@ import { getBkashIdToken } from "../../lib/bkash";
 import config from "../../config";
 
 const generateTransactionId = () => {
-  return `PAY-${Date.now()}-${Math.floor(
-    Math.random() * 100000
-  )}`;
+  return `PAY-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
 };
 
 /**
@@ -35,41 +33,56 @@ const initiatePayment = async (
     },
   });
 
-  const idToken = await getBkashIdToken();
+  const bkashIdToken = await getBkashIdToken();
 
-  if (!idToken) {
-    throw new Error("Unable to authenticate with bKash");
+  if (!bkashIdToken) {
+    throw new Error("No bKash Access Token");
   }
 
-  const response = await fetch(
+  const bkashCreatePaymentResponse = await fetch(
     `${config.bkash_base_url}/tokenized/checkout/create`,
     {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
-        Authorization: idToken,
+        Authorization: bkashIdToken,
         "X-APP-Key": config.bkash_app_key,
       },
       body: JSON.stringify({
         mode: "0011",
+
+        // তোমার working project-এর মতো
         payerReference: userId,
+
         callbackURL: config.bkash_callback_url,
+
         amount: amount.toString(),
         currency: "BDT",
         intent: "sale",
+
         merchantInvoiceNumber: transactionId,
       }),
     }
   );
 
-  const bkashResult = await response.json();
+  const bkashCreatePaymentResult =
+    await bkashCreatePaymentResponse.json();
 
-  console.log("BKASH CREATE:", bkashResult);
+  console.log(
+    "========== BKASH CREATE =========="
+  );
+  console.log(bkashCreatePaymentResult);
+  console.log(
+    "=================================="
+  );
 
-  if (!response.ok || !bkashResult.paymentID) {
+  if (
+    !bkashCreatePaymentResponse.ok ||
+    !bkashCreatePaymentResult.paymentID
+  ) {
     throw new Error(
-      bkashResult.statusMessage ||
+      bkashCreatePaymentResult.statusMessage ||
         "bKash payment creation failed"
     );
   }
@@ -81,7 +94,7 @@ const initiatePayment = async (
       },
       data: {
         bkashPaymentId:
-          bkashResult.paymentID,
+          bkashCreatePaymentResult.paymentID,
       },
     });
 
@@ -91,9 +104,13 @@ const initiatePayment = async (
     userId: updatedPayment.userId,
     amount: Number(updatedPayment.amount),
     status: updatedPayment.status,
+
     bkashPaymentId:
       updatedPayment.bkashPaymentId,
-    paymentURL: bkashResult.bkashURL,
+
+    paymentURL:
+      bkashCreatePaymentResult.bkashURL,
+
     createdAt: updatedPayment.createdAt,
     updatedAt: updatedPayment.updatedAt,
   };
@@ -113,105 +130,226 @@ const executeBkashPayment = async (
     });
 
   if (!payment) {
+    throw new Error("Payment record not found");
+  }
+
+  if (["SUCCESS", "FAILED", "CANCELLED"].includes(payment.status)) {
+    return {
+      ...payment,
+      amount: Number(payment.amount),
+    };
+  }
+
+  if (!payment.bkashPaymentId) {
     throw new Error(
-      "Payment record not found"
+      "bKash Payment ID not found"
     );
   }
 
-  const idToken =
+  const bkashIdToken =
     await getBkashIdToken();
 
-  if (!idToken) {
-    throw new Error("Unable to authenticate with bKash");
+  if (!bkashIdToken) {
+    throw new Error(
+      "No bKash Access Token"
+    );
   }
 
-  const response = await fetch(
-    `${config.bkash_base_url}/tokenized/checkout/execute`,
-    {
-      method: "POST",
+  const executedPaymentResponse =
+    await fetch(
+      `${config.bkash_base_url}/tokenized/checkout/execute`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: bkashIdToken,
+          "X-APP-Key":
+            config.bkash_app_key,
+        },
+        body: JSON.stringify({
+          paymentID:
+            payment.bkashPaymentId,
+        }),
+      }
+    );
 
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
+  const executedPaymentResult =
+    await executedPaymentResponse.json();
 
-        Authorization: idToken,
-
-        "X-APP-Key":
-          config.bkash_app_key,
-      },
-
-      body: JSON.stringify({
-        paymentID: payment.bkashPaymentId,
-      }),
-    }
+  console.log(
+    "========== BKASH EXECUTE =========="
+  );
+  console.log(executedPaymentResult);
+  console.log(
+    "==================================="
   );
 
-  const result = await response.json();
-
-  console.log("========== BKASH EXECUTE RESPONSE ==========");
-  console.log(result);
-  console.log("============================================");
-
-  if (
-    !response.ok ||
-    result.statusCode !== "0000"
-  ) {
+  if (!executedPaymentResponse.ok) {
     throw new Error(
-      result.statusMessage ||
+      executedPaymentResult.statusMessage ||
         "bKash payment execution failed"
     );
   }
 
-  const updatedPayment = await prisma.payment.update({
-    where: { id: payment.id },
-    data: { status: "SUCCESS" },
-  });
+  /*
+   * Successful bKash transaction
+   */
+  if (
+    String(
+      executedPaymentResult.statusCode
+    ) === "0000"
+  ) {
+    const updatedPayment =
+      await prisma.payment.update({
+        where: {
+          id: payment.id,
+        },
+        data: {
+          status: "SUCCESS",
+        },
+      });
+
+    return {
+      ...updatedPayment,
+      amount: Number(
+        updatedPayment.amount
+      ),
+      bkashResponse:
+        executedPaymentResult,
+    };
+  }
+
+  let bkashResponse = executedPaymentResult;
+
+  if (String(executedPaymentResult.statusCode) === "2056") {
+    const paymentStatusResponse = await fetch(
+      `${config.bkash_base_url}/tokenized/checkout/payment/status`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: bkashIdToken,
+          "X-APP-Key": config.bkash_app_key,
+        },
+        body: JSON.stringify({
+          paymentID: payment.bkashPaymentId,
+        }),
+      }
+    );
+
+    const paymentStatusResult = await paymentStatusResponse.json();
+    bkashResponse = {
+      execute: executedPaymentResult,
+      status: paymentStatusResult,
+    };
+
+    if (
+      paymentStatusResponse.ok &&
+      String(paymentStatusResult.statusCode) === "0000" &&
+      String(paymentStatusResult.transactionStatus).toLowerCase() ===
+        "completed"
+    ) {
+      const updatedPayment = await prisma.payment.update({
+        where: {
+          id: payment.id,
+        },
+        data: {
+          status: "SUCCESS",
+        },
+      });
+
+      return {
+        ...updatedPayment,
+        amount: Number(updatedPayment.amount),
+        bkashResponse,
+      };
+    }
+  }
+
+  /*
+   * bKash execution failed
+   */
+  const updatedPayment =
+    await prisma.payment.update({
+      where: {
+        id: payment.id,
+      },
+      data: {
+        status: "FAILED",
+      },
+    });
 
   return {
     ...updatedPayment,
-    amount: Number(updatedPayment.amount),
-    bkashResponse: result,
+    amount: Number(
+      updatedPayment.amount
+    ),
+    bkashResponse,
   };
 };
 
 /**
- * bKash Callback / Webhook
+ * bKash Callback
  */
 const handleWebhook = async (
   paymentID: string,
   status: string
 ) => {
   if (!paymentID) {
-    throw new Error(
-      "Payment ID is required"
-    );
+    throw new Error("Payment Id Missing");
   }
 
-  console.log("bKash Callback:", {
+  if (!status) {
+    throw new Error("Payment Status is Missing");
+  }
+
+  console.log("========== BKASH CALLBACK ==========");
+  console.log({
     paymentID,
     status,
   });
+  console.log("====================================");
 
-  const payment =
-    await prisma.payment.findUnique({
+  const payment = await prisma.payment.findUnique({
+    where: {
+      bkashPaymentId: paymentID,
+    },
+  });
+
+  if (!payment) {
+    throw new Error("Payment record not found");
+  }
+
+  const normalizedStatus = status.toLowerCase();
+
+  // CANCEL
+  if (normalizedStatus === "cancel") {
+    const updatedPayment = await prisma.payment.update({
       where: {
-        bkashPaymentId: paymentID,
+        id: payment.id,
+      },
+      data: {
+        status: "CANCELLED",
       },
     });
 
-  if (!payment) {
-    throw new Error(
-      "Payment record not found"
-    );
+    return {
+      ...updatedPayment,
+      amount: Number(updatedPayment.amount),
+    };
   }
 
-  if (
-    status &&
-    status.toLowerCase() === "cancel"
-  ) {
+  // FAILURE
+  if (normalizedStatus === "failure") {
     const updatedPayment = await prisma.payment.update({
-      where: { id: payment.id },
-      data: { status: "CANCELLED" },
+      where: {
+        id: payment.id,
+      },
+      data: {
+        status: "FAILED",
+      },
     });
 
     return {
@@ -220,23 +358,13 @@ const handleWebhook = async (
     };
   }
 
-  if (
-    status &&
-    status.toLowerCase() === "failure"
-  ) {
-    const updatedPayment = await prisma.payment.update({
-      where: { id: payment.id },
-      data: { status: "FAILED" },
-    });
-
-    return {
-      ...updatedPayment,
-      amount: Number(updatedPayment.amount),
-    };
+  // SUCCESS → NOW EXECUTE
+  if (normalizedStatus === "success") {
+    return executeBkashPayment(payment.id);
   }
 
-  return executeBkashPayment(
-    payment.id
+  throw new Error(
+    `Unknown bKash payment status: ${status}`
   );
 };
 
@@ -253,7 +381,6 @@ const getPaymentById = async (
       where: {
         id: paymentId,
       },
-
       include: {
         user: {
           select: {
@@ -284,9 +411,35 @@ const getPaymentById = async (
 
   return {
     ...payment,
-
     amount: Number(payment.amount),
   };
+};
+
+const getPayments = async (userId: string, role: string) => {
+  const payments = await prisma.payment.findMany({
+    where:
+      role === "ADMIN" || role === "SUPER_ADMIN"
+        ? undefined
+        : { userId },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  return payments.map((payment) => ({
+    ...payment,
+    amount: Number(payment.amount),
+  }));
 };
 
 export const PaymentService = {
@@ -294,4 +447,5 @@ export const PaymentService = {
   executeBkashPayment,
   handleWebhook,
   getPaymentById,
+  getPayments,
 };

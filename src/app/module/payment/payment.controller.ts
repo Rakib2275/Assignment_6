@@ -63,11 +63,14 @@ const webhook = catchAsync(
       paymentID,
       status
     );
+    const succeeded = result.status === "SUCCESS";
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
-      success: true,
-      message: "Payment processed successfully",
+      success: succeeded,
+      message: succeeded
+        ? "Payment processed successfully"
+        : `Payment ${result.status.toLowerCase()}`,
       data: result,
     });
   }
@@ -90,8 +93,25 @@ const getPaymentById = catchAsync(
   }
 );
 
+const getPayments = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await PaymentService.getPayments(
+      getUserId(req),
+      req.user?.role ?? "CUSTOMER"
+    );
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Payments retrieved successfully",
+      data: result,
+    });
+  }
+);
+
 export const PaymentController = {
   initiatePayment,
   webhook,
   getPaymentById,
+  getPayments,
 };
