@@ -1,4 +1,15 @@
 {
-  "installCommand": "npm install --include=dev",
-  "buildCommand": "npm run build"
+  "version": 2,
+  "builds":[
+    {
+      "src":"dist/server.js",
+      "use":"@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "dist/server.js"
+    }
+  ]
 }
